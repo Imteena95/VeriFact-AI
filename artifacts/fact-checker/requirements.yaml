@@ -1,0 +1,8 @@
+packages:
+  "recharts": "Data visualization for the dashboard stats"
+  "framer-motion": "Animations for the pipeline verification steps"
+  "date-fns": "Date formatting for timestamps"
+  "clsx": "Utility for constructing className strings"
+  "tailwind-merge": "Utility for merging tailwind classes safely"
+  "@radix-ui/react-dialog": "Accessible modal dialogs for fact creation"
+  "@radix-ui/react-slider": "Accessible slider for concurrency selection"

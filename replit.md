@@ -4,6 +4,32 @@
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
+## Project: Vernacular News Fact-Checker (VeriFact AI)
+
+Full-stack automated fact-checking pipeline for Indian vernacular news/social media posts.
+
+### Features
+- **Pipeline Optimization**: Strips conversational fluff from posts using GPT (gpt-5-nano) to extract core verifiable claims — key throughput optimization
+- **Semantic Matching**: TF-IDF cosine similarity against a verified facts database  
+- **Batch Processing**: Concurrent processing of up to 1000 posts at once with configurable parallelism
+- **Vernacular Support**: Auto-detects and handles Hindi, Telugu, Tamil, Bengali, Marathi, and other Indian languages
+- **Verdict System**: VERIFIED TRUE / LIKELY FALSE / UNVERIFIED with confidence scores
+
+### Architecture
+- Frontend: React + Vite (artifacts/fact-checker) at previewPath "/"
+- Backend: Express API server (artifacts/api-server) at /api
+- Database: PostgreSQL + Drizzle ORM (lib/db) — facts and posts tables
+- AI: OpenAI via Replit AI Integrations (no user API key needed)
+
+### Key Files
+- `artifacts/api-server/src/lib/pipeline.ts` — core fact-checking pipeline
+- `artifacts/api-server/src/routes/facts.ts` — verified facts CRUD
+- `artifacts/api-server/src/routes/posts.ts` — single post check
+- `artifacts/api-server/src/routes/pipeline.ts` — batch processing + stats
+- `lib/db/src/schema/facts.ts` — verified facts DB schema
+- `lib/db/src/schema/posts.ts` — processed posts DB schema
+- `scripts/src/seed-facts.ts` — seeds 15 verified facts
+
 ## Stack
 
 - **Monorepo tool**: pnpm workspaces

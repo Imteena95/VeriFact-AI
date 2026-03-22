@@ -1,22 +1,27 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Vernacular News Fact-Checker API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: facts
+    description: Verified facts database management
+  - name: posts
+    description: News/social posts fact-checking pipeline
+  - name: pipeline
+    description: Batch processing pipeline
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +29,178 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /facts:
+    get:
+      operationId: listFacts
+      tags: [facts]
+      summary: List all verified facts
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: category
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of verified facts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FactListResponse"
+    post:
+      operationId: createFact
+      tags: [facts]
+      summary: Add a verified fact to the database
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFactBody"
+      responses:
+        "201":
+          description: Fact created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Fact"
+
+  /facts/{id}:
+    get:
+      operationId: getFact
+      tags: [facts]
+      summary: Get a verified fact by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Verified fact
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Fact"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteFact
+      tags: [facts]
+      summary: Delete a verified fact
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+
+  /posts:
+    get:
+      operationId: listPosts
+      tags: [posts]
+      summary: List processed posts with their verdicts
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: verdict
+          in: query
+          schema:
+            type: string
+            enum: [true, false, unverified]
+        - name: language
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of processed posts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostListResponse"
+
+  /posts/check:
+    post:
+      operationId: checkPost
+      tags: [posts]
+      summary: Submit a single post for fact-checking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckPostBody"
+      responses:
+        "200":
+          description: Fact-check result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckPostResult"
+
+  /pipeline/batch:
+    post:
+      operationId: runBatch
+      tags: [pipeline]
+      summary: Submit a batch of posts for high-throughput fact-checking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchCheckBody"
+      responses:
+        "200":
+          description: Batch processing results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchCheckResult"
+
+  /pipeline/stats:
+    get:
+      operationId: getPipelineStats
+      tags: [pipeline]
+      summary: Get pipeline processing statistics
+      responses:
+        "200":
+          description: Pipeline stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineStats"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +211,333 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    DeleteResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required:
+        - success
+
+    Fact:
+      type: object
+      properties:
+        id:
+          type: integer
+        claim:
+          type: string
+          description: The verified factual claim
+        verdict:
+          type: string
+          enum: [true, false]
+          description: Whether this claim is true or false
+        explanation:
+          type: string
+          description: Explanation or context for the verdict
+        source:
+          type: string
+          description: Source URL or reference
+        category:
+          type: string
+          description: Topic category (politics, health, science, etc.)
+        language:
+          type: string
+          description: Language of the claim (en, hi, te, ta, bn, etc.)
+        keywords:
+          type: array
+          items:
+            type: string
+          description: Extracted keywords for matching
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - claim
+        - verdict
+        - explanation
+        - category
+        - language
+        - keywords
+        - createdAt
+        - updatedAt
+
+    CreateFactBody:
+      type: object
+      properties:
+        claim:
+          type: string
+        verdict:
+          type: string
+          enum: [true, false]
+        explanation:
+          type: string
+        source:
+          type: string
+        category:
+          type: string
+        language:
+          type: string
+          default: en
+      required:
+        - claim
+        - verdict
+        - explanation
+        - category
+
+    FactListResponse:
+      type: object
+      properties:
+        facts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Fact"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required:
+        - facts
+        - total
+        - limit
+        - offset
+
+    Post:
+      type: object
+      properties:
+        id:
+          type: integer
+        originalText:
+          type: string
+          description: Original post text (may be in vernacular)
+        optimizedClaim:
+          type: string
+          description: Extracted factual claim after pipeline optimization
+        language:
+          type: string
+          description: Detected language
+        verdict:
+          type: string
+          enum: [true, false, unverified]
+        confidence:
+          type: number
+          description: Confidence score 0-1
+        matchedFactId:
+          type: integer
+          nullable: true
+          description: ID of the matched verified fact
+        matchedFact:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Fact"
+        explanation:
+          type: string
+          description: Explanation for the verdict
+        processingTimeMs:
+          type: integer
+          description: Time taken to process this post
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - originalText
+        - optimizedClaim
+        - language
+        - verdict
+        - confidence
+        - explanation
+        - processingTimeMs
+        - createdAt
+
+    PostListResponse:
+      type: object
+      properties:
+        posts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Post"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+        stats:
+          type: object
+          properties:
+            total:
+              type: integer
+            verdictTrue:
+              type: integer
+            verdictFalse:
+              type: integer
+            verdictUnverified:
+              type: integer
+          required:
+            - total
+            - verdictTrue
+            - verdictFalse
+            - verdictUnverified
+      required:
+        - posts
+        - total
+        - limit
+        - offset
+        - stats
+
+    CheckPostBody:
+      type: object
+      properties:
+        text:
+          type: string
+          description: Post text to fact-check
+        language:
+          type: string
+          description: Language hint (optional, auto-detected if omitted)
+      required:
+        - text
+
+    CheckPostResult:
+      type: object
+      properties:
+        post:
+          $ref: "#/components/schemas/Post"
+        pipeline:
+          type: object
+          properties:
+            originalText:
+              type: string
+            optimizedClaim:
+              type: string
+            strippedTokens:
+              type: integer
+              description: Number of tokens stripped by optimizer
+            matchScore:
+              type: number
+          required:
+            - originalText
+            - optimizedClaim
+            - strippedTokens
+            - matchScore
+      required:
+        - post
+        - pipeline
+
+    BatchCheckBody:
+      type: object
+      properties:
+        posts:
+          type: array
+          items:
+            type: object
+            properties:
+              text:
+                type: string
+              language:
+                type: string
+            required:
+              - text
+          maxItems: 1000
+        concurrency:
+          type: integer
+          default: 10
+          description: Number of posts to process concurrently
+      required:
+        - posts
+
+    BatchCheckResult:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/Post"
+        stats:
+          type: object
+          properties:
+            total:
+              type: integer
+            processed:
+              type: integer
+            verdictTrue:
+              type: integer
+            verdictFalse:
+              type: integer
+            verdictUnverified:
+              type: integer
+            avgProcessingTimeMs:
+              type: number
+            throughputPerSecond:
+              type: number
+          required:
+            - total
+            - processed
+            - verdictTrue
+            - verdictFalse
+            - verdictUnverified
+            - avgProcessingTimeMs
+            - throughputPerSecond
+      required:
+        - results
+        - stats
+
+    PipelineStats:
+      type: object
+      properties:
+        totalPostsProcessed:
+          type: integer
+        totalFactsInDatabase:
+          type: integer
+        verdictBreakdown:
+          type: object
+          properties:
+            true:
+              type: integer
+            false:
+              type: integer
+            unverified:
+              type: integer
+          required:
+            - true
+            - false
+            - unverified
+        avgConfidence:
+          type: number
+        avgProcessingTimeMs:
+          type: number
+        throughputPerSecond:
+          type: number
+        recentActivity:
+          type: array
+          items:
+            type: object
+            properties:
+              hour:
+                type: string
+              count:
+                type: integer
+            required:
+              - hour
+              - count
+      required:
+        - totalPostsProcessed
+        - totalFactsInDatabase
+        - verdictBreakdown
+        - avgConfidence
+        - avgProcessingTimeMs
+        - throughputPerSecond
+        - recentActivity
