@@ -61,6 +61,11 @@ Automated fact-checking systems typically follow a pipeline of claim extraction,
 * Backend: AI-powered processing pipeline
 * Database: Fact storage & retrieval system
 * AI/NLP: Claim extraction & verification models
+---
+
+## 🎥 Demo
+
+👉 https://drive.google.com/file/d/18Pjb0eIYoGBAyXd7seQcZNNCscneJ6U-/view?usp=drive_link
 
 ---
 
